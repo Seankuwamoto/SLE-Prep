@@ -504,7 +504,9 @@ nextButton.addEventListener("click", function() {
 copyShareButton.addEventListener("click", copyShareSummaryText);
 nextRoundButton.addEventListener("click", startNextRound);
 
-window.onload = function() {
+document.getElementById("begin-btn").addEventListener("click", function() {
+    document.getElementById("intro-screen").hidden = true;
+    document.querySelector(".page-shell").hidden = false;
     initializeRoundPool();
     startElapsedTimer();
     roundStartTimestamp = Date.now();
@@ -513,4 +515,8 @@ window.onload = function() {
     updateScoreboard();
     setQuestion();
     answerInput.focus();
+});
+
+window.onload = function() {
+    document.getElementById("begin-btn").focus();
 };
