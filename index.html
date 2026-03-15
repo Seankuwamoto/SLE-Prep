@@ -9,7 +9,21 @@
     <title>SLE Prep</title>
 </head>
 <body>
-    <main class="page-shell">
+    <section id="intro-screen" class="intro-screen" aria-labelledby="intro-title">
+        <div class="intro-card">
+            <p class="eyebrow">Literature Drill</p>
+            <h1 id="intro-title">SLE Prep</h1>
+            <p class="intro-description">Test your recall of authors and works from the SLE reading list. Each round draws every prompt once — you'll be asked who wrote a given work, or what a given author wrote. When you finish a round you'll see your score, a review of anything you missed on the first try, and a shareable summary.</p>
+            <ul class="intro-rules">
+                <li>Last names are accepted for authors.</li>
+                <li>For multi-answer prompts, name each answer in any order.</li>
+                <li>Press <kbd>Enter</kbd> or click <strong>Check</strong> to submit.</li>
+            </ul>
+            <button id="begin-btn" type="button">Begin Test</button>
+        </div>
+    </section>
+
+    <main class="page-shell" hidden>
         <section class="study-card" aria-labelledby="app-title">
             <p class="eyebrow">Literature Drill</p>
             <h1 id="app-title">SLE Prep</h1>
