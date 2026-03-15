@@ -24,6 +24,8 @@ const summarySessionCorrectElement = document.getElementById("summary-session-co
 const summarySessionTimeElement = document.getElementById("summary-session-time");
 const summaryMissedListElement = document.getElementById("summary-missed-list");
 const summaryShareTextElement = document.getElementById("summary-share-text");
+const hardModeToggle = document.getElementById("hard-mode-toggle");
+const modeBadgeElement = document.getElementById("mode-badge");
 const copyShareButton = document.getElementById("copy-share-btn");
 const copyShareStatusElement = document.getElementById("copy-share-status");
 const nextRoundButton = document.getElementById("next-round-btn");
@@ -37,6 +39,7 @@ const usedAuthorsByWork = new Map();
 const usedWorksByAuthor = new Map();
 const remainingAuthorPrompts = new Map();
 const remainingWorkPrompts = new Map();
+const HARD_MODE_WORKS = new Set(["Troubadour Poetry", "Renaissance Poetry"]);
 let currentQuestionIsFirstTry = true;
 let currentQuestionPromptText = "";
 let firstTryScore = 0;
@@ -46,7 +49,43 @@ let questionsPerRound = 0;
 let roundStartFirstTryScore = 0;
 let roundStartTotalCorrect = 0;
 let awaitingRoundRestart = false;
+let hardModeEnabled = false;
+let activeWorkToAuthor = workToAuthor;
+let activeAuthorToWork = authorToWork;
 const missedFirstTryByPromptInRound = new Map();
+
+function buildActiveQuizData() {
+    if (!hardModeEnabled) {
+        activeWorkToAuthor = workToAuthor;
+        activeAuthorToWork = authorToWork;
+        return;
+    }
+
+    const filteredWorkEntries = Object.entries(workToAuthor)
+        .filter(function([work]) {
+            return HARD_MODE_WORKS.has(work);
+        });
+
+    activeWorkToAuthor = Object.fromEntries(filteredWorkEntries);
+    const allowedWorks = new Set(Object.keys(activeWorkToAuthor));
+    const filteredAuthorEntries = Object.entries(authorToWork)
+        .map(function([author, works]) {
+            return [author, works.filter(function(work) {
+                return allowedWorks.has(work);
+            })];
+        })
+        .filter(function([, works]) {
+            return works.length > 0;
+        });
+
+    activeAuthorToWork = Object.fromEntries(filteredAuthorEntries);
+}
+
+function updateModeBadge() {
+    modeBadgeElement.textContent = hardModeEnabled
+        ? "Hard Mode: Troubadour + Renaissance"
+        : "Standard Mode";
+}
 
 function clearAutoAdvanceTimer() {
     if (autoAdvanceTimeoutId !== null) {
@@ -70,14 +109,15 @@ function randomIndex(maxExclusive) {
 }
 
 function initializeRoundPool() {
+    buildActiveQuizData();
     remainingAuthorPrompts.clear();
     remainingWorkPrompts.clear();
 
-    Object.entries(workToAuthor).forEach(function([work, authors]) {
+    Object.entries(activeWorkToAuthor).forEach(function([work, authors]) {
         remainingAuthorPrompts.set(work, authors.length);
     });
 
-    Object.entries(authorToWork).forEach(function([author, works]) {
+    Object.entries(activeAuthorToWork).forEach(function([author, works]) {
         remainingWorkPrompts.set(author, works.length);
     });
 
@@ -290,11 +330,11 @@ function getOrCreateUsedSet(store, key) {
 
 function getCurrentOptions() {
     if (currentType === "author") {
-        return (workToAuthor[currentThing] || []).map(author => author.trim());
+        return (activeWorkToAuthor[currentThing] || []).map(author => author.trim());
     }
 
     if (currentType === "work") {
-        return (authorToWork[currentThing] || []).map(work => work.trim());
+        return (activeAuthorToWork[currentThing] || []).map(work => work.trim());
     }
 
     return [];
@@ -350,13 +390,13 @@ function setQuestion() {
     questionsRemaining -= 1;
 
     if (currentType === "author") {
-        if (workToAuthor[currentThing].length > 1) {
+        if (activeWorkToAuthor[currentThing].length > 1) {
             currentQuestionPromptText = `Name an author of "${currentThing}".`;
         } else {
             currentQuestionPromptText = `Who is the author of "${currentThing}"?`;
         }
     } else {
-        if (authorToWork[currentThing].length > 1) {
+        if (activeAuthorToWork[currentThing].length > 1) {
             currentQuestionPromptText = `Name a work by ${currentThing}.`;
         } else {
             currentQuestionPromptText = `What did ${currentThing} write?`;
@@ -397,10 +437,10 @@ function checkAnswer() {
             clearAutoAdvanceTimer();
             currentQuestionIsFirstTry = false;
             if (authorOptions.length > 1) {
-                showFeedback(`Not quite. Possible answers: ${workToAuthor[currentThing].join(", ")}`, false);
+                showFeedback(`Not quite. Possible answers: ${activeWorkToAuthor[currentThing].join(", ")}`, false);
             }
             else {
-                showFeedback(`Not quite. Correct answer: ${workToAuthor[currentThing][0]}`, false);
+                showFeedback(`Not quite. Correct answer: ${activeWorkToAuthor[currentThing][0]}`, false);
             }
         } else {
             const matchedAuthor = authorOptions[matchedAuthorIndex];
@@ -448,10 +488,10 @@ function checkAnswer() {
             clearAutoAdvanceTimer();
             currentQuestionIsFirstTry = false;
             if (workOptions.length > 1) {
-                showFeedback(`Not quite. Possible answers: ${authorToWork[currentThing].join(", ")}`, false);
+                showFeedback(`Not quite. Possible answers: ${activeAuthorToWork[currentThing].join(", ")}`, false);
             }
             else {
-                showFeedback(`Not quite. Correct answer: ${authorToWork[currentThing][0]}`, false);
+                showFeedback(`Not quite. Correct answer: ${activeAuthorToWork[currentThing][0]}`, false);
             }
         } else {
             const matchedWork = workOptions[matchedWorkIndex];
@@ -505,6 +545,8 @@ copyShareButton.addEventListener("click", copyShareSummaryText);
 nextRoundButton.addEventListener("click", startNextRound);
 
 document.getElementById("begin-btn").addEventListener("click", function() {
+    hardModeEnabled = Boolean(hardModeToggle && hardModeToggle.checked);
+    updateModeBadge();
     document.getElementById("intro-screen").hidden = true;
     document.querySelector(".page-shell").hidden = false;
     initializeRoundPool();
