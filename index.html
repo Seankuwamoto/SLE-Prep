@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://unpkg.com/@supabase/supabase-js@2" defer></script>
     <script src="script.js" defer></script>
     <link rel="stylesheet" href="styles.css">
     <title>SLE Prep</title>
@@ -19,11 +20,18 @@
                 <li>For multi-answer prompts, name each answer in any order.</li>
                 <li>Press <kbd>Enter</kbd> or click <strong>Check</strong> to submit.</li>
             </ul>
+            <div class="intro-name-row">
+                <label class="intro-name-label" for="player-name">Your name</label>
+                <input id="player-name" class="intro-name-input" type="text" placeholder="SLE student" autocomplete="name">
+            </div>
             <label class="mode-option" for="hard-mode-toggle">
                 <input id="hard-mode-toggle" type="checkbox">
                 Hard Mode: only Troubadour Poetry and Renaissance Poetry
             </label>
-            <button id="begin-btn" type="button">Begin Test</button>
+            <div class="intro-actions">
+                <button id="begin-btn" type="button">Begin Test</button>
+                <button id="intro-leaderboard-btn" type="button" class="ghost-btn intro-leaderboard-btn">View Leaderboard</button>
+            </div>
         </div>
     </section>
 
@@ -33,6 +41,10 @@
             <h1 id="app-title">SLE Prep</h1>
             <p id="mode-badge" class="mode-badge">Standard Mode</p>
             <p class="subtitle">Fast author-work recall practice.</p>
+
+            <div class="study-card-header-actions">
+                <button id="inround-leaderboard-btn" type="button" class="ghost-btn">Leaderboard</button>
+            </div>
 
             <section class="scoreboard" aria-label="Scoreboard" aria-live="polite">
                 <article class="score-item">
@@ -70,6 +82,7 @@
 
             <div class="actions">
                 <button id="next-btn" type="button" class="ghost-btn">Skip Question</button>
+                <button id="end-round-btn" type="button" class="ghost-btn end-round-btn">End Round</button>
             </div>
         </section>
     </main>
@@ -119,6 +132,45 @@
 
             <div class="modal-actions">
                 <button id="next-round-btn" type="button">Start Next Round</button>
+            </div>
+        </article>
+    </section>
+
+    <section id="leaderboard-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="leaderboard-title">
+        <div class="modal-backdrop"></div>
+        <article class="modal-card">
+            <p class="eyebrow">Leaderboard</p>
+            <h2 id="leaderboard-title">Top Players</h2>
+
+            <div class="leaderboard-mode-toggle" role="tablist" aria-label="Leaderboard mode">
+                <button id="leaderboard-normal-btn" type="button" class="leaderboard-mode-btn" role="tab" aria-selected="true">
+                    Normal
+                </button>
+                <button id="leaderboard-hard-btn" type="button" class="leaderboard-mode-btn" role="tab" aria-selected="false">
+                    Hard
+                </button>
+            </div>
+
+            <p id="leaderboard-status" class="leaderboard-status">Loading…</p>
+
+            <table class="leaderboard-table" aria-label="Leaderboard standings">
+                <thead>
+                    <tr>
+                        <th scope="col">Rank</th>
+                        <th scope="col">Player</th>
+                        <th scope="col">Points</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboard-body"></tbody>
+            </table>
+
+            <section class="leaderboard-me" aria-live="polite">
+                <p id="leaderboard-me-text" class="leaderboard-me-text"></p>
+                <p id="leaderboard-above-text" class="leaderboard-above-text"></p>
+            </section>
+
+            <div class="modal-actions">
+                <button id="leaderboard-close-btn" type="button">Close</button>
             </div>
         </article>
     </section>
