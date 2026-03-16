@@ -37,10 +37,13 @@ const modeBadgeElement = document.getElementById("mode-badge");
 const copyShareButton = document.getElementById("copy-share-btn");
 const copyShareStatusElement = document.getElementById("copy-share-status");
 const nextRoundButton = document.getElementById("next-round-btn");
+const returnMenuButton = document.getElementById("return-menu-btn");
 const submitButton = document.getElementById("submit-btn");
 const nextButton = document.getElementById("next-btn");
 const endRoundButton = document.getElementById("end-round-btn");
 const playerNameInput = document.getElementById("player-name");
+const introScreenElement = document.getElementById("intro-screen");
+const pageShellElement = document.querySelector(".page-shell");
 const introLeaderboardButton = document.getElementById("intro-leaderboard-btn");
 const inroundLeaderboardButton = document.getElementById("inround-leaderboard-btn");
 const leaderboardModalElement = document.getElementById("leaderboard-modal");
@@ -466,6 +469,96 @@ function hideRoundSummaryModal() {
     roundSummaryModalElement.classList.add("hidden");
 }
 
+function stopElapsedTimer() {
+    if (timerIntervalId !== null) {
+        clearInterval(timerIntervalId);
+        timerIntervalId = null;
+    }
+}
+
+function resetSessionState() {
+    clearAutoAdvanceTimer();
+    stopElapsedTimer();
+    hideRoundSummaryModal();
+    closeLeaderboard();
+
+    currentType = "none";
+    currentThing = "";
+    currentQuestionIsFirstTry = true;
+    currentQuestionPromptText = "";
+    firstTryScore = 0;
+    totalCorrect = 0;
+    questionsRemaining = 0;
+    questionsPerRound = 0;
+    roundStartFirstTryScore = 0;
+    roundStartTotalCorrect = 0;
+    timerStartTimestamp = 0;
+    roundStartTimestamp = 0;
+    awaitingRoundRestart = false;
+    missedFirstTryByPromptInRound.clear();
+    remainingAuthorPrompts.clear();
+    remainingWorkPrompts.clear();
+    usedAuthorsByWork.clear();
+    usedWorksByAuthor.clear();
+
+    if (answerInput) {
+        answerInput.value = "";
+    }
+    if (questionElement) {
+        questionElement.textContent = "";
+    }
+    if (feedbackElement) {
+        feedbackElement.textContent = "";
+        feedbackElement.className = "feedback";
+    }
+    if (progressLabelElement) {
+        progressLabelElement.textContent = "";
+    }
+    if (progressListElement) {
+        progressListElement.textContent = "None yet.";
+    }
+    if (progressTrackerElement) {
+        progressTrackerElement.hidden = true;
+        progressTrackerElement.className = "progress-tracker";
+    }
+    if (summaryMissedListElement) {
+        summaryMissedListElement.innerHTML = "";
+    }
+    if (summaryShareTextElement) {
+        summaryShareTextElement.value = "";
+    }
+    if (copyShareStatusElement) {
+        copyShareStatusElement.textContent = "";
+    }
+    if (elapsedTimeElement) {
+        elapsedTimeElement.textContent = "00:00";
+    }
+
+    updateScoreboard();
+}
+
+function returnToMainMenu() {
+    resetSessionState();
+
+    if (hardModeToggle) {
+        hardModeToggle.checked = hardModeEnabled;
+    }
+    if (playerNameInput) {
+        playerNameInput.value = currentPlayerName;
+    }
+    if (introScreenElement) {
+        introScreenElement.hidden = false;
+    }
+    if (pageShellElement) {
+        pageShellElement.hidden = true;
+    }
+
+    const beginButton = document.getElementById("begin-btn");
+    if (beginButton) {
+        beginButton.focus();
+    }
+}
+
 function startNextRound() {
     hideRoundSummaryModal();
     awaitingRoundRestart = false;
@@ -773,6 +866,9 @@ if (endRoundButton) {
 
 copyShareButton.addEventListener("click", copyShareSummaryText);
 nextRoundButton.addEventListener("click", startNextRound);
+if (returnMenuButton) {
+    returnMenuButton.addEventListener("click", returnToMainMenu);
+}
 
 document.getElementById("begin-btn").addEventListener("click", function() {
     const rawName = playerNameInput ? playerNameInput.value : "";
@@ -796,8 +892,8 @@ document.getElementById("begin-btn").addEventListener("click", function() {
 
     hardModeEnabled = Boolean(hardModeToggle && hardModeToggle.checked);
     updateModeBadge();
-    document.getElementById("intro-screen").hidden = true;
-    document.querySelector(".page-shell").hidden = false;
+    introScreenElement.hidden = true;
+    pageShellElement.hidden = false;
     initializeRoundPool();
     startElapsedTimer();
     roundStartTimestamp = Date.now();

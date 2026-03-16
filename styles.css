@@ -584,6 +584,8 @@ button:active {
     margin-top: 1rem;
     display: flex;
     justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.65rem;
 }
 
 #copy-share-btn,
