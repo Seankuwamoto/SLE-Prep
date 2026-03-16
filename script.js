@@ -430,7 +430,8 @@ function checkAnswer() {
         updateProgressTracker();
 
         const matchedAuthorIndex = normalizedAuthors.findIndex((author, index) => {
-            return userAnswer === author || userAnswer === authorLastNames[index];
+            const firstNameOnly = author.split(" ")[0];
+            return userAnswer === author || userAnswer === authorLastNames[index] || userAnswer === firstNameOnly;
         });
 
         if (matchedAuthorIndex === -1) {
