@@ -103,6 +103,35 @@ body {
     accent-color: var(--accent);
 }
 
+.intro-name-row {
+    margin: 0 0 0.9rem;
+    text-align: left;
+}
+
+.intro-name-label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: var(--muted);
+}
+
+.intro-name-input {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0.7rem 0.85rem;
+    font-size: 1rem;
+    background: #fff;
+}
+
+.intro-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: center;
+}
+
 #begin-btn {
     padding: 0.95rem 2.4rem;
     background: var(--accent);
@@ -339,6 +368,88 @@ button:active {
 
 .ghost-btn:hover {
     background: #f7f3ec;
+}
+
+.intro-leaderboard-btn {
+    border-style: dashed;
+}
+
+.end-round-btn {
+    margin-left: 0.4rem;
+}
+
+.study-card-header-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 0.6rem;
+}
+
+.leaderboard-mode-toggle {
+    margin: 0.6rem 0 0.4rem;
+    display: inline-flex;
+    gap: 0.45rem;
+}
+
+.leaderboard-mode-btn {
+    padding: 0.35rem 0.9rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: #f7f3ec;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.leaderboard-mode-btn.active {
+    background: var(--accent-soft);
+    border-color: #0f766e;
+    color: #0c4f4a;
+}
+
+.leaderboard-status {
+    margin: 0.35rem 0 0.6rem;
+    font-size: 0.9rem;
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 0.6rem;
+    font-size: 0.95rem;
+}
+
+.leaderboard-table th,
+.leaderboard-table td {
+    padding: 0.4rem 0.5rem;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+}
+
+.leaderboard-table th {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+}
+
+.leaderboard-row-me {
+    background: #f2faf7;
+}
+
+.leaderboard-row-top {
+    background: #fff7d6;
+}
+
+.leaderboard-me {
+    margin-top: 0.35rem;
+    text-align: left;
+    font-size: 0.95rem;
+}
+
+.leaderboard-me-text,
+.leaderboard-above-text {
+    margin: 0.15rem 0;
 }
 
 .sr-only {

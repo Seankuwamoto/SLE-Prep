@@ -2,6 +2,14 @@ const workToAuthor = JSON.parse('{"Sir Gawain and the Green Knight":["Anonymous"
 
 const authorToWork = JSON.parse('{"Anonymous":["Sir Gawain and the Green Knight"],"Jaufré Rudel":["Troubadour Poetry"],"Bernart De Ventadorn":["Troubadour Poetry"],"La Comtessa de Dia":["Troubadour Poetry"],"Dante":["Inferno", "Renaissance Poetry"],"Enrigue":["You Dreamed of Empires"],"Hernan Cortez":["Letters From Mexico"],"Montaigne":["Of Cannibals"],"Audre Lorde":["The Master\'s Tools Will Never Dismantle the Master\'s House"],"Machiavelli":["The Prince","Discourses"],"Jacopo da Lentini":["Renaissance Poetry"],"Francesco Petrarca":["Renaissance Poetry"],"Pietro Bembo":["Renaissance Poetry"],"Gaspara Stampa":["Renaissance Poetry"],"Michelangelo Buonarroti":["Renaissance Poetry"],"Louise Labé":["Renaissance Poetry"],"Edmund Spencer":["Renaissance Poetry"],"William Shakespeare":["Renaissance Poetry","The Tempest"],"Inca Garcilaso de la Vega":["Royal Commentaries of the Incas"],"Cervantes":["Don Quixote"],"René Descartes":["Meditations on First Philosophy"],"John Locke":["Second Treatise on Government"],"Thomas Jefferson":["Notes on the State of Virginia"],"Immanuel Kant":["What is Enlightenment?"],"Rosseau":["Discourse on Inequality"],"M. NourbeSe Philip":["Zong!"],"Mary Shelly":["Frankenstein"],"Schleiermacher":["On the Essence of Religion"],"Blake":["Auguries of Innocence","The Book of Thel","The Marriage of Heaven and Hell","The Garden of Love","A Poison Tree","Letter to Dr. Tustler "],"William Wordsworth":["Preface to Lyrical Ballads","Nutting","Ode: Immitations of Immortality from Recollections of Early Childhood","We Are Seven"]}');
 
+// Supabase leaderboard client
+const supabaseUrl = 'https://chndgufgfsjoohljkjet.supabase.co';
+// TODO: replace with your Supabase anon public key from Settings → API
+const supabaseAnonKey = 'sb_publishable_5h6ZpVN4k0_vOyfIQ5XRNw_ssY5m-tt';
+const supabaseClient = (typeof supabase !== "undefined" && supabaseUrl && supabaseAnonKey)
+    ? supabase.createClient(supabaseUrl, supabaseAnonKey)
+    : null;
+
 let currentType = "none";
 let currentThing = "";
 const questionElement = document.getElementById("question");
@@ -31,6 +39,18 @@ const copyShareStatusElement = document.getElementById("copy-share-status");
 const nextRoundButton = document.getElementById("next-round-btn");
 const submitButton = document.getElementById("submit-btn");
 const nextButton = document.getElementById("next-btn");
+const endRoundButton = document.getElementById("end-round-btn");
+const playerNameInput = document.getElementById("player-name");
+const introLeaderboardButton = document.getElementById("intro-leaderboard-btn");
+const inroundLeaderboardButton = document.getElementById("inround-leaderboard-btn");
+const leaderboardModalElement = document.getElementById("leaderboard-modal");
+const leaderboardNormalButton = document.getElementById("leaderboard-normal-btn");
+const leaderboardHardButton = document.getElementById("leaderboard-hard-btn");
+const leaderboardCloseButton = document.getElementById("leaderboard-close-btn");
+const leaderboardStatusElement = document.getElementById("leaderboard-status");
+const leaderboardBodyElement = document.getElementById("leaderboard-body");
+const leaderboardMeTextElement = document.getElementById("leaderboard-me-text");
+const leaderboardAboveTextElement = document.getElementById("leaderboard-above-text");
 let autoAdvanceTimeoutId = null;
 let timerIntervalId = null;
 let timerStartTimestamp = 0;
@@ -53,6 +73,12 @@ let hardModeEnabled = false;
 let activeWorkToAuthor = workToAuthor;
 let activeAuthorToWork = authorToWork;
 const missedFirstTryByPromptInRound = new Map();
+let currentPlayerName = "";
+let currentLeaderboardMode = "normal";
+
+function getCurrentModeKey() {
+    return hardModeEnabled ? "hard" : "normal";
+}
 
 function buildActiveQuizData() {
     if (!hardModeEnabled) {
@@ -229,6 +255,8 @@ function showRoundSummaryModal() {
     const roundTime = formatElapsedTime(roundElapsedSeconds);
     const sessionTime = formatElapsedTime(sessionElapsedSeconds);
 
+    submitRoundScore(roundCorrect);
+
     summaryRoundFirstTryElement.textContent = `${roundFirstTry}/${questionsPerRound}`;
     summaryRoundCorrectElement.textContent = `${roundCorrect}/${questionsPerRound}`;
     summaryRoundRateElement.textContent = roundRate;
@@ -241,6 +269,197 @@ function showRoundSummaryModal() {
     summaryShareTextElement.value = buildShareSummary(roundFirstTry, roundCorrect, roundRate, roundTime, sessionTime);
     copyShareStatusElement.textContent = "";
     roundSummaryModalElement.classList.remove("hidden");
+}
+
+async function submitRoundScore(pointsGained) {
+    if (!supabaseClient) {
+        return;
+    }
+    const trimmedName = (currentPlayerName || "").trim();
+    if (!trimmedName || pointsGained <= 0) {
+        return;
+    }
+
+    const modeKey = getCurrentModeKey(); // "normal" or "hard"
+    const isHard = modeKey === "hard";
+    const pointsColumn = isHard ? "hard_point" : "normal_point";
+
+    const { data, error } = await supabaseClient
+        .from("scores")
+        .select(`name, ${pointsColumn}`)
+        .eq("name", trimmedName)
+        .maybeSingle();
+
+    if (error && error.code !== "PGRST116") {
+        console.error("Error fetching current score", error);
+        return;
+    }
+
+    const existing = data || null;
+
+    if (!existing) {
+        const insertPayload = {
+            name: trimmedName,
+            mode: modeKey,
+            hard_point: isHard ? pointsGained : 0,
+            normal_point: isHard ? 0 : pointsGained,
+            updated_at: new Date().toISOString()
+        };
+
+        const { error: insertError } = await supabaseClient
+            .from("scores")
+            .insert(insertPayload);
+
+        if (insertError) {
+            console.error("Error inserting score", insertError);
+        }
+        return;
+    }
+
+    const currentPoints = Number(existing[pointsColumn] || 0);
+    const newTotal = currentPoints + pointsGained;
+
+    const updatePayload = {
+        [pointsColumn]: newTotal,
+        mode: modeKey,
+        updated_at: new Date().toISOString()
+    };
+
+    const { error: updateError } = await supabaseClient
+        .from("scores")
+        .update(updatePayload)
+        .eq("name", trimmedName);
+
+    if (updateError) {
+        console.error("Error updating score", updateError);
+    }
+}
+
+function setLeaderboardMode(modeKey) {
+    currentLeaderboardMode = modeKey;
+    if (leaderboardNormalButton && leaderboardHardButton) {
+        leaderboardNormalButton.classList.toggle("active", modeKey === "normal");
+        leaderboardHardButton.classList.toggle("active", modeKey === "hard");
+        leaderboardNormalButton.setAttribute("aria-selected", modeKey === "normal" ? "true" : "false");
+        leaderboardHardButton.setAttribute("aria-selected", modeKey === "hard" ? "true" : "false");
+    }
+}
+
+function computeLeaderboardPositions(entries, playerName) {
+    const withRanks = entries.map((row, index) => ({
+        ...row,
+        rank: index + 1
+    }));
+
+    const lowerName = (playerName || "").trim().toLowerCase();
+    const meIndex = lowerName
+        ? withRanks.findIndex(row => row.name.trim().toLowerCase() === lowerName)
+        : -1;
+
+    if (meIndex === -1) {
+        return { rows: withRanks, me: null, above: null };
+    }
+
+    const me = withRanks[meIndex];
+    const above = meIndex > 0 ? withRanks[meIndex - 1] : null;
+    return { rows: withRanks, me, above };
+}
+
+async function loadLeaderboard() {
+    if (!supabaseClient) {
+        if (leaderboardStatusElement) {
+            leaderboardStatusElement.textContent = "Leaderboard is not configured.";
+        }
+        return;
+    }
+
+    if (leaderboardStatusElement) {
+        leaderboardStatusElement.textContent = "Loading…";
+    }
+    if (leaderboardBodyElement) {
+        leaderboardBodyElement.innerHTML = "";
+    }
+    if (leaderboardMeTextElement) {
+        leaderboardMeTextElement.textContent = "";
+    }
+    if (leaderboardAboveTextElement) {
+        leaderboardAboveTextElement.textContent = "";
+    }
+
+    const pointsColumn = currentLeaderboardMode === "hard" ? "hard_point" : "normal_point";
+
+    const { data, error } = await supabaseClient
+        .from("scores")
+        .select(`name, mode, points:${pointsColumn}`)
+        .order(pointsColumn, { ascending: false })
+        .limit(50);
+
+    if (error) {
+        console.error("Error loading leaderboard", error);
+        if (leaderboardStatusElement) {
+            leaderboardStatusElement.textContent = "Could not load leaderboard.";
+        }
+        return;
+    }
+
+    const trimmedName = (currentPlayerName || "").trim();
+    const { rows, me, above } = computeLeaderboardPositions(data || [], trimmedName);
+
+    if (leaderboardBodyElement) {
+        rows.forEach(function(row) {
+            const tr = document.createElement("tr");
+            if (rows.length && rows[0] === row) {
+                tr.classList.add("leaderboard-row-top");
+            }
+            if (me && row.name === me.name && row.mode === me.mode) {
+                tr.classList.add("leaderboard-row-me");
+            }
+
+            const rankTd = document.createElement("td");
+            rankTd.textContent = String(row.rank);
+            const nameTd = document.createElement("td");
+            nameTd.textContent = row.name;
+            const ptsTd = document.createElement("td");
+            ptsTd.textContent = String(row.points);
+
+            tr.appendChild(rankTd);
+            tr.appendChild(nameTd);
+            tr.appendChild(ptsTd);
+            leaderboardBodyElement.appendChild(tr);
+        });
+    }
+
+    if (leaderboardStatusElement) {
+        if (!rows.length) {
+            leaderboardStatusElement.textContent = "No scores yet. Be the first to set a record.";
+        } else {
+            leaderboardStatusElement.textContent = "";
+        }
+    }
+
+    if (leaderboardMeTextElement) {
+        if (me) {
+            if (me.rank === 1) {
+                leaderboardMeTextElement.textContent = `You are currently #1 with ${me.points} point${me.points === 1 ? "" : "s"} 👑`;
+            } else {
+                leaderboardMeTextElement.textContent = `You are currently #${me.rank} with ${me.points} point${me.points === 1 ? "" : "s"}.`;
+            }
+        } else if (trimmedName) {
+            leaderboardMeTextElement.textContent = `You do not have a recorded score yet in ${currentLeaderboardMode} mode. Finish a round to join the board.`;
+        } else {
+            leaderboardMeTextElement.textContent = "";
+        }
+    }
+
+    if (leaderboardAboveTextElement) {
+        if (me && above) {
+            leaderboardAboveTextElement.textContent = `Next to beat: ${above.name} with ${above.points} point${above.points === 1 ? "" : "s"}.`;
+        } else if (me && !above && rows.length) {
+            leaderboardAboveTextElement.textContent = "You are at the top of the board. Keep it up!";
+        } else {
+            leaderboardAboveTextElement.textContent = "";
+        }
+    }
 }
 
 function hideRoundSummaryModal() {
@@ -541,10 +760,39 @@ nextButton.addEventListener("click", function() {
     answerInput.focus();
 });
 
+if (endRoundButton) {
+    endRoundButton.addEventListener("click", function() {
+        if (awaitingRoundRestart) {
+            return;
+        }
+        questionsRemaining = 0;
+        setQuestion();
+    });
+}
+
 copyShareButton.addEventListener("click", copyShareSummaryText);
 nextRoundButton.addEventListener("click", startNextRound);
 
 document.getElementById("begin-btn").addEventListener("click", function() {
+    const rawName = playerNameInput ? playerNameInput.value : "";
+    currentPlayerName = rawName.trim();
+    if (!currentPlayerName) {
+        if (feedbackElement) {
+            feedbackElement.textContent = "Please enter a name to begin.";
+            feedbackElement.className = "feedback show incorrect";
+        }
+        if (playerNameInput) {
+            playerNameInput.focus();
+        }
+        return;
+    }
+
+    try {
+        window.localStorage.setItem("sle-prep-name", currentPlayerName);
+    } catch (_) {
+        // ignore
+    }
+
     hardModeEnabled = Boolean(hardModeToggle && hardModeToggle.checked);
     updateModeBadge();
     document.getElementById("intro-screen").hidden = true;
@@ -559,6 +807,57 @@ document.getElementById("begin-btn").addEventListener("click", function() {
     answerInput.focus();
 });
 
+function openLeaderboardFromIntro() {
+    setLeaderboardMode("normal");
+    leaderboardModalElement.classList.remove("hidden");
+    loadLeaderboard();
+}
+
+function openLeaderboardFromRound() {
+    setLeaderboardMode(getCurrentModeKey());
+    leaderboardModalElement.classList.remove("hidden");
+    loadLeaderboard();
+}
+
+function closeLeaderboard() {
+    leaderboardModalElement.classList.add("hidden");
+}
+
+if (introLeaderboardButton && leaderboardModalElement) {
+    introLeaderboardButton.addEventListener("click", openLeaderboardFromIntro);
+}
+
+if (inroundLeaderboardButton && leaderboardModalElement) {
+    inroundLeaderboardButton.addEventListener("click", openLeaderboardFromRound);
+}
+
+if (leaderboardCloseButton && leaderboardModalElement) {
+    leaderboardCloseButton.addEventListener("click", closeLeaderboard);
+}
+
+if (leaderboardNormalButton) {
+    leaderboardNormalButton.addEventListener("click", function() {
+        setLeaderboardMode("normal");
+        loadLeaderboard();
+    });
+}
+
+if (leaderboardHardButton) {
+    leaderboardHardButton.addEventListener("click", function() {
+        setLeaderboardMode("hard");
+        loadLeaderboard();
+    });
+}
+
 window.onload = function() {
+    try {
+        const storedName = window.localStorage.getItem("sle-prep-name");
+        if (storedName && playerNameInput) {
+            playerNameInput.value = storedName;
+        }
+    } catch (_) {
+        // ignore
+    }
+
     document.getElementById("begin-btn").focus();
 };
