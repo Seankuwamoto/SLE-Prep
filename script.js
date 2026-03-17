@@ -338,6 +338,52 @@ async function submitRoundScore(pointsGained) {
     }
 }
 
+// Backend/admin helper for moderation use.
+// async function deletePlayerNameFromDatabase(nameToDelete) {
+//     if (!supabaseClient) {
+//         return {
+//             ok: false,
+//             message: "Supabase client is not configured."
+//         };
+//     }
+
+//     const trimmedName = String(nameToDelete || "").trim();
+//     if (!trimmedName) {
+//         return {
+//             ok: false,
+//             message: "Provide a non-empty name to delete."
+//         };
+//     }
+
+//     const { data, error } = await supabaseClient
+//         .from("scores")
+//         .delete()
+//         .eq("name", trimmedName)
+//         .select("name");
+
+//     if (error) {
+//         console.error("Error deleting player name", error);
+//         return {
+//             ok: false,
+//             message: "Delete failed.",
+//             error
+//         };
+//     }
+
+//     return {
+//         ok: true,
+//         deletedCount: Array.isArray(data) ? data.length : 0,
+//         deletedName: trimmedName,
+//         message: Array.isArray(data) && data.length > 0
+//             ? `Deleted ${data.length} record(s) for ${trimmedName}.`
+//             : `No records found for ${trimmedName}.`
+//     };
+// }
+
+if (typeof window !== "undefined") {
+    window.deletePlayerNameFromDatabase = deletePlayerNameFromDatabase;
+}
+
 function setLeaderboardMode(modeKey) {
     currentLeaderboardMode = modeKey;
     if (leaderboardNormalButton && leaderboardHardButton) {
