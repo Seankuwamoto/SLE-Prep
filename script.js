@@ -380,9 +380,9 @@ async function submitRoundScore(pointsGained) {
 //     };
 // }
 
-if (typeof window !== "undefined") {
-    window.deletePlayerNameFromDatabase = deletePlayerNameFromDatabase;
-}
+// if (typeof window !== "undefined") {
+//     window.deletePlayerNameFromDatabase = deletePlayerNameFromDatabase;
+// }
 
 function setLeaderboardMode(modeKey) {
     currentLeaderboardMode = modeKey;
